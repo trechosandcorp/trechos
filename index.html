@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leaflet Segment Viewer</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+  <style>
+    html,body,#map { height: 100%; margin: 0; }
+    .legend {
+      background: rgba(255,255,255,0.9);
+      padding: 10px;
+      border-radius: 6px;
+      font-family: sans-serif;
+      font-size: 13px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      margin-right: 6px;
+      border: 1px solid #555;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+  <script>
+    const map = L.map('map').setView([-3.1, -58.5], 6);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    let geojsonLayer = null;
+    const addedMarkers = new Set();
+
+    const VENDOR_PROPERTY = "VENDOR A";
+
+    // assign colors for each VENDOR value
+    const vendorColors = {};
+    const palette = [
+      "#1f78b4", "#ffff99", "#e31a1c", "#b15928", "#6a3d9a", "#33a02c",
+      "#ff7f00", "#a6cee3", "#b2df8a", "#fb9a99", "#fdbf6f", "#cab2d6"
+    ];
+    let colorIndex = 0;
+
+    function assignColorsFromData(data) {
+      if (!data.features) return;
+      const vendors = new Set();
+      data.features.forEach(f => {
+        if (f.properties && f.properties[VENDOR_PROPERTY]) {
+          vendors.add(f.properties[VENDOR_PROPERTY]);
+        }
+      });
+      vendors.forEach(vendor => {
+        if (!vendorColors[vendor]) {
+          vendorColors[vendor] = palette[colorIndex % palette.length];
+          colorIndex++;
+        }
+      });
+    }
+
+    function getColorForVendor(vendor) {
+      if (!vendor) return '#1f78b4';
+      return vendorColors[vendor] || '#1f78b4';
+    }
+
+    function styleFeature(feature) {
+      if (feature.properties && feature.properties.color) {
+        return {
+          color: feature.properties.color,
+          weight: 4,
+          opacity: 0.9
+        };
+      }
+      const vendor = feature.properties ? feature.properties[VENDOR_PROPERTY] : null;
+      return {
+        color: getColorForVendor(vendor),
+        weight: 4,
+        opacity: 0.9
+      };
+    }
+
+    function highlightLayer(e) {
+      const layer = e.target;
+      layer.setStyle({ weight: 6, color: '#ff7f00' });
+      if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+        layer.bringToFront();
+      }
+    }
+
+    function resetHighlight(e) {
+      geojsonLayer.resetStyle(e.target);
+    }
+
+    function onFeatureClick(e) {
+      const layer = e.target;
+      const props = layer.feature.properties || {};
+      let html = '<div style="min-width:180px; max-width:360px;"><strong>Properties</strong><table>';
+      const keys = Object.keys(props);
+      if (keys.length === 0) html += '<tr><td><em>(no properties)</em></td></tr>';
+      for (const k of keys) {
+        html += `<tr><td style="font-weight:600">${escapeHtml(k)}</td><td>${escapeHtml(String(props[k]))}</td></tr>`;
+      }
+      html += '</table></div>';
+      layer.bindPopup(html).openPopup();
+    }
+
+    function onEachFeature(feature, layer) {
+      if (layer instanceof L.Polyline) {
+        layer.on({
+          mouseover: highlightLayer,
+          mouseout: resetHighlight,
+          click: onFeatureClick
+        });
+
+        if (feature.geometry && feature.geometry.type === "LineString") {
+          const coords = feature.geometry.coordinates;
+          if (coords.length >= 2) {
+            addUniqueMarker(coords[0]);
+            addUniqueMarker(coords[coords.length - 1]);
+          }
+        }
+      }
+    }
+
+    function addUniqueMarker(coord) {
+      const key = coord.join(",");
+      if (!addedMarkers.has(key)) {
+        addedMarkers.add(key);
+        const marker = L.circleMarker([coord[1], coord[0]], {
+          radius: 5,
+          color: '#e31a1c',
+          weight: 2,
+          fillColor: '#fb9a99',
+          fillOpacity: 0.8
+        });
+        marker.addTo(map);
+      }
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // create a Leaflet control for the legend
+    const legendControl = L.control({ position: 'bottomleft' });
+
+    legendControl.onAdd = function (map) {
+      const div = L.DomUtil.create('div', 'legend');
+      div.innerHTML = '<strong>VENDOR</strong><br/>';
+      for (const vendor in vendorColors) {
+        const color = vendorColors[vendor];
+        div.innerHTML += `
+          <div class="legend-item">
+            <div class="legend-color" style="background:${color}"></div>${escapeHtml(vendor)}
+          </div>`;
+      }
+      return div;
+    };
+
+    function updateLegend() {
+      legendControl.remove();
+      legendControl.addTo(map);
+    }
+
+    fetch('/data.geojson')
+      .then(resp => resp.json())
+      .then(data => {
+        // assign colors before creating the layer
+        assignColorsFromData(data);
+
+        geojsonLayer = L.geoJSON(data, {
+          style: styleFeature,
+          onEachFeature: onEachFeature
+        }).addTo(map);
+
+        if (geojsonLayer.getBounds && geojsonLayer.getBounds().isValid()) {
+          map.fitBounds(geojsonLayer.getBounds(), { padding: [20,20] });
+        }
+
+        updateLegend();
+      })
+      .catch(err => console.error('Failed to load /data.geojson:', err));
+  </script>
+</body>
+</html>

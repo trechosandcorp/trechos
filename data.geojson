@@ -1,0 +1,119 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -60.02167,
+            -3.11889
+          ],
+          [
+            -58.4442,
+            -3.14306
+          ]
+        ]
+      },
+      "properties": {
+        "CIDADE A": "MANAUS",
+        "UF A": "AM",
+        "POP A": "1",
+        "TECNOLOGIA A": "DWDM",
+        "VENDOR A": "PADTEC",
+        "RESPONSÁVEL A": "RNP - INFOVIA 00",
+        "CIDADE B": "ITACOATIARA",
+        "UF B": "AM",
+        "POP B": "1",
+        "TECNOLOGIA B": "DWDM",
+        "VENDOR B": "PADTEC",
+        "RESPONSÁVEL B": "RNP - INFOVIA 00",
+        "CANAIS": "30, 35,21-22,37",
+        "TRECHO": "MANAUS x ITACOATIARA",
+        "COMPARTILHADO?": "",
+        "KM TOTAL": "",
+        "KM ALLOHA": "",
+        "KM PARCEIRO 1": "",
+        "KM PARCEIRO 2": "",
+        "KM PARCEIRO 3": ""
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -59.1306,
+            -3.57972
+          ],
+          [
+            -58.4442,
+            -3.14306
+          ]
+        ]
+      },
+      "properties": {
+        "CIDADE A": "AUTAZES",
+        "UF A": "AM",
+        "POP A": "2",
+        "TECNOLOGIA A": "DWDM",
+        "VENDOR A": "PADTEC",
+        "RESPONSÁVEL A": "RNP - INFOVIA 00",
+        "CIDADE B": "ITACOATIARA",
+        "UF B": "AM",
+        "POP B": "2",
+        "TECNOLOGIA B": "DWDM",
+        "VENDOR B": "PADTEC",
+        "RESPONSÁVEL B": "RNP - INFOVIA 00",
+        "CANAIS": "21-22",
+        "TRECHO": "AUTAZES x ITACOATIARA",
+        "COMPARTILHADO?": "",
+        "KM TOTAL": "",
+        "KM ALLOHA": "",
+        "KM PARCEIRO 1": "",
+        "KM PARCEIRO 2": "",
+        "KM PARCEIRO 3": ""
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -58.4442,
+            -3.14306
+          ],
+          [
+            -58.155,
+            -3.13083
+          ]
+        ]
+      },
+      "properties": {
+        "CIDADE A": "ITACOATIARA",
+        "UF A": "AM",
+        "POP A": "3",
+        "TECNOLOGIA A": "DWDM",
+        "VENDOR A": "HUAWEI",
+        "RESPONSÁVEL A": "RNP - INFOVIA 00",
+        "CIDADE B": "URUCURITUBA",
+        "UF B": "AM",
+        "POP B": "3",
+        "TECNOLOGIA B": "DWDM",
+        "VENDOR B": "HUAWEI",
+        "RESPONSÁVEL B": "RNP - INFOVIA 00",
+        "CANAIS": "21-22,35",
+        "TRECHO": "ITACOATIARA x URUCURITUBA",
+        "COMPARTILHADO?": "",
+        "KM TOTAL": "",
+        "KM ALLOHA": "",
+        "KM PARCEIRO 1": "",
+        "KM PARCEIRO 2": "",
+        "KM PARCEIRO 3": ""
+      }
+    }
+  ]
+}
