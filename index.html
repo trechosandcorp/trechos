@@ -182,7 +182,7 @@
       legendControl.addTo(map);
     }
 
-    fetch('/data.geojson')
+    fetch('./data.geojson')
       .then(resp => resp.json())
       .then(data => {
         // assign colors before creating the layer
