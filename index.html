@@ -28,6 +28,20 @@
       margin-right: 6px;
       border: 1px solid #555;
     }
+    .city-control {
+      background: #fff;
+      padding: 8px;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      font-family: sans-serif;
+      font-size: 14px;
+    }
+    .city-control select, .city-control button {
+      margin: 4px 0;
+      width: 100%;
+      font-size: 14px;
+      padding: 4px;
+    }
   </style>
 </head>
 <body>
@@ -46,8 +60,11 @@
 
     let geojsonLayer = null;
     const addedMarkers = new Set();
-
+    let allFeatures = [];
     const VENDOR_PROPERTY = "VENDOR A";
+    const CITYA_PROPERTY = "CIDADE A";
+    const CITYB_PROPERTY = "CIDADE B";
+    let highlightedLayer = null;
 
     // assign colors for each VENDOR value
     const vendorColors = {};
@@ -96,6 +113,10 @@
 
     function highlightLayer(e) {
       const layer = e.target;
+      if (highlightedLayer && highlightedLayer !== layer) {
+        geojsonLayer.resetStyle(highlightedLayer);
+        highlightedLayer = null;
+      }
       layer.setStyle({ weight: 6, color: '#ff7f00' });
       if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
         layer.bringToFront();
@@ -103,11 +124,21 @@
     }
 
     function resetHighlight(e) {
+      if (highlightedLayer && e.target === highlightedLayer) return; // don't reset if it's the manually highlighted one
       geojsonLayer.resetStyle(e.target);
     }
 
     function onFeatureClick(e) {
       const layer = e.target;
+
+      // clear previous highlight
+      if (highlightedLayer && highlightedLayer !== layer) {
+        geojsonLayer.resetStyle(highlightedLayer);
+      }
+
+      highlightedLayer = layer;
+      layer.setStyle({ color: 'red', weight: 6 });
+
       const props = layer.feature.properties || {};
       let html = '<div style="min-width:180px; max-width:360px;"><strong>Properties</strong><table>';
       const keys = Object.keys(props);
@@ -161,9 +192,8 @@
         .replace(/'/g, '&#39;');
     }
 
-    // create a Leaflet control for the legend
+    // legend control
     const legendControl = L.control({ position: 'bottomleft' });
-
     legendControl.onAdd = function (map) {
       const div = L.DomUtil.create('div', 'legend');
       div.innerHTML = '<strong>VENDOR</strong><br/>';
@@ -176,17 +206,85 @@
       }
       return div;
     };
-
     function updateLegend() {
       legendControl.remove();
       legendControl.addTo(map);
     }
 
+    // city selector control
+    const cityControl = L.control({ position: 'topright' });
+    cityControl.onAdd = function(map) {
+      const div = L.DomUtil.create('div', 'city-control leaflet-bar');
+      div.innerHTML = `
+        <label for="cityA">City A:</label><br>
+        <select id="cityA"></select><br>
+        <label for="cityB">City B:</label><br>
+        <select id="cityB"></select><br>
+        <button id="findSegment">Find Segment</button>
+      `;
+      L.DomEvent.disableClickPropagation(div);
+      return div;
+    };
+    cityControl.addTo(map);
+
+    function populateCitySelectors(features) {
+      const citySet = new Set();
+      features.forEach(f => {
+        if (f.properties) {
+          if (f.properties[CITYA_PROPERTY]) citySet.add(f.properties[CITYA_PROPERTY]);
+          if (f.properties[CITYB_PROPERTY]) citySet.add(f.properties[CITYB_PROPERTY]);
+        }
+      });
+      const cityList = Array.from(citySet).sort();
+      const selA = document.getElementById('cityA');
+      const selB = document.getElementById('cityB');
+      cityList.forEach(city => {
+        const optA = document.createElement('option');
+        optA.value = optA.textContent = city;
+        selA.appendChild(optA);
+        const optB = document.createElement('option');
+        optB.value = optB.textContent = city;
+        selB.appendChild(optB);
+      });
+    }
+
+    function setupFindSegment() {
+      document.getElementById('findSegment').addEventListener('click', () => {
+        const cityA = document.getElementById('cityA').value;
+        const cityB = document.getElementById('cityB').value;
+        if (!cityA || !cityB) return;
+
+        if (highlightedLayer) {
+          geojsonLayer.resetStyle(highlightedLayer);
+          highlightedLayer = null;
+        }
+
+        let found = null;
+        geojsonLayer.eachLayer(layer => {
+          const props = layer.feature.properties;
+          if (!props) return;
+          if ((props[CITYA_PROPERTY] === cityA && props[CITYB_PROPERTY] === cityB) ||
+              (props[CITYB_PROPERTY] === cityB && props[CITYA_PROPERTY] === cityA)) {
+            found = layer;
+          }
+        });
+
+        if (found) {
+          map.fitBounds(found.getBounds(), { padding: [20,20] });
+          found.setStyle({ color: 'red', weight: 6 });
+          highlightedLayer = found;
+          found.openPopup();
+        } else {
+          alert(`No segment found for ${cityA} - ${cityB}`);
+        }
+      });
+    }
+
     fetch('./data.geojson')
       .then(resp => resp.json())
       .then(data => {
-        // assign colors before creating the layer
         assignColorsFromData(data);
+        allFeatures = data.features;
 
         geojsonLayer = L.geoJSON(data, {
           style: styleFeature,
@@ -197,9 +295,11 @@
           map.fitBounds(geojsonLayer.getBounds(), { padding: [20,20] });
         }
 
+        populateCitySelectors(allFeatures);
+        setupFindSegment();
         updateLegend();
       })
-      .catch(err => console.error('Failed to load /data.geojson:', err));
+      .catch(err => console.error('Failed to load ./data.geojson:', err));
   </script>
 </body>
 </html>
